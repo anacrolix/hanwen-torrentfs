@@ -1,0 +1,35 @@
+name: Go
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    timeout-minutes: 20
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: [stable, oldstable]
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Install FUSE (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fuse
+
+      - name: Install fuse-t (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install macfuse fuse-t
+          echo 'FUSE_FORCE_BACKEND=fuse-t' >> $GITHUB_ENV
+
+      - run: go mod download
+
+      - run: go test ./...
